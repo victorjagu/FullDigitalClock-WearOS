@@ -8,11 +8,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Text
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -55,7 +59,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // 💡 SOLUCIÓN AL GESTO DE DESLIZAR: Al volver a entrar a la app tras haber deslizado, 
+    // SOLUCIÓN AL GESTO DE DESLIZAR: Al volver a entrar a la app tras haber deslizado, 
     // se ejecuta onStart. Forzamos a limpiar cualquier estado residual previo.
     override fun onStart() {
         super.onStart()
@@ -98,6 +102,9 @@ fun ClockSecondsApp(
 ) {
     var currentTime by remember { mutableStateOf("--:--:--") }
     val formatter = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
+    
+    // 💡 Tamaño máximo deseado para relojes grandes (se adaptará reduciéndose si es necesario)
+    var fontSize by remember { mutableStateOf(64.sp) }
 
     // El temporizador vive estrictamente bajo el ciclo de vida visible de la interfaz
     LaunchedEffect(isAppVisible) {
@@ -120,15 +127,24 @@ fun ClockSecondsApp(
                         onKeepScreenOnChanged(!isKeepScreenOnEnabled)
                     }
                 )
-            },
+            }
+            .padding(horizontal = 12.dp), // Margen lateral para proteger el texto en esferas circulares
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = currentTime,
-            // TEXTO ROJO TENUE: Apaga por completo los subpíxeles verde y azul del panel OLED.
-            // Al usar un tono apagado (0xFF880000) en vez de rojo brillante, reducimos el consumo eléctrico drásticamente.
             color = if (isKeepScreenOnEnabled) Color(0xFF880000) else Color.White,
-            style = androidx.wear.compose.material.MaterialTheme.typography.display2
+            maxLines = 1, // 💡 Prohíbe terminantemente el salto de línea
+            overflow = TextOverflow.Clip, // Corta visualmente el sobrante en el milisegundo exacto antes de encogerse
+            onTextLayout = { textLayoutResult ->
+                // 💡 Si detecta que no cabe a lo ancho, reduce el tamaño de la letra inmediatamente
+                if (textLayoutResult.hasVisualOverflow) {
+                    fontSize = (fontSize.value - 1).sp
+                }
+            },
+            style = androidx.wear.compose.material.MaterialTheme.typography.display2.copy(
+                fontSize = fontSize
+            )
         )
     }
 }

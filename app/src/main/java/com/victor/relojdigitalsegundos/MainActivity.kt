@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
@@ -14,7 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Text
@@ -27,7 +28,7 @@ class MainActivity : ComponentActivity() {
 
     private var isAppVisible by mutableStateOf(false)
     
-    // 💡 OPTIMIZACIÓN DE ARRANQUE: Usamos una variable primitiva nativa en lugar de un State de Compose.
+    // OPTIMIZACIÓN DE ARRANQUE: Usamos una variable primitiva nativa en lugar de un State de Compose.
     // Esto elimina por completo el retraso (delay) al iniciar la Activity.
     private var isKeepScreenOnEnabledRaw = false
 
@@ -104,11 +105,8 @@ fun ClockSecondsApp(
     var currentTime by remember { mutableStateOf("--:--:--") }
     val formatter = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
     
-    // 💡 El estado reactivo se gestiona de forma interna y eficiente en Compose, sincronizándose con la clave initialKeepScreenOn
+    // El estado reactivo se gestiona de forma interna y eficiente en Compose, sincronizándose con la clave initialKeepScreenOn
     var isKeepScreenOnEnabled by remember(initialKeepScreenOn) { mutableStateOf(initialKeepScreenOn) }
-    
-    // Tamaño máximo deseado para relojes grandes (se adaptará reduciéndose si es necesario)
-    var fontSize by remember { mutableStateOf(64.sp) }
 
     // El temporizador vive estrictamente bajo el ciclo de vida visible de la interfaz
     LaunchedEffect(isAppVisible) {
@@ -120,7 +118,8 @@ fun ClockSecondsApp(
         }
     }
 
-    Box(
+    // 💡 BoxWithConstraints nos da el ancho exacto (maxWidth) de la pantalla del reloj en tiempo real
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black) // Fondo OLED puro para apagar físicamente los píxeles
@@ -133,23 +132,26 @@ fun ClockSecondsApp(
                         onKeepScreenOnChanged(newState)
                     }
                 )
-            }
-            .padding(horizontal = 12.dp), // Margen lateral para proteger el texto en esferas circulares
+            },
         contentAlignment = Alignment.Center
     ) {
+        // 💡 CÁLCULO MATEMÁTICO PREVIO: Convertimos los píxeles disponibles a tamaño sp de forma estática.
+        // Restamos el padding lateral de seguridad (24dp total) y calculamos una escala de fuente perfecta para 8 caracteres.
+        // Ponemos un límite máximo de 64.sp para que no crezca desproporcionadamente en pantallas gigantes.
+        val availableWidthDp = maxWidth - 24.dp
+        val calculatedFontSize = with(LocalDensity.current) {
+            val widthInPx = availableWidthDp.toPx()
+            // Un carácter numérico en tipografía monoespaciada estándar/display suele ocupar en torno a un 60% de su altura (fontSize)
+            val idealSizeSp = (widthInPx / 8.0f) * 1.55f / density
+            idealSizeSp.coerceAtMost(64f).sp
+        }
+
         Text(
             text = currentTime,
             color = if (isKeepScreenOnEnabled) Color(0xFF880000) else Color.White,
             maxLines = 1, // Prohíbe terminantemente el salto de línea
-            overflow = TextOverflow.Clip, // Corta visualmente el sobrante en el milisegundo exacto antes de encogerse
-            onTextLayout = { textLayoutResult ->
-                // Si detecta que no cabe a lo ancho, reduce el tamaño de la letra inmediatamente
-                if (textLayoutResult.hasVisualOverflow) {
-                    fontSize = (fontSize.value - 1).sp
-                }
-            },
             style = androidx.wear.compose.material.MaterialTheme.typography.display2.copy(
-                fontSize = fontSize
+                fontSize = calculatedFontSize
             )
         )
     }

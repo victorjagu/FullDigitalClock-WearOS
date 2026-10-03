@@ -25,6 +25,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 💡 ASEGURA STARTUP EN FALSE: Forzamos a que la ventana limpie la bandera al abrir la app.
+        // Así el reloj se iniciará siempre respetando el tiempo de apagado normal.
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         setContent {
             // Pasamos la función para controlar la pantalla desde Compose
             ClockSecondsApp(
@@ -78,7 +83,8 @@ fun ClockSecondsApp(
     onKeepScreenOnChanged: (Boolean) -> Unit
 ) {
     var currentTime by remember { mutableStateOf("--:--:--") }
-    // Estado que recuerda si la pantalla debe quedarse encendida o no
+    
+    // Estado que recuerda si la pantalla debe quedarse encendida o no (inicia estrictamente en false)
     var isKeepScreenOnEnabled by remember { mutableStateOf(false) }
     val formatter = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 

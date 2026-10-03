@@ -1,6 +1,6 @@
 name: Compilar APK WearOS
 
-# cancelar ejecuciones antiguas
+# Cancelar ejecuciones antiguas automáticamente
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -38,11 +38,15 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Configurar e iniciar motor de compilación (Gradle)
-      run: |
-        gradle wrapper --gradle-version 8.2 --distribution-type bin
-        chmod +x ./gradlew
-        ./gradlew assembleDebug --no-daemon
+    # Paso clave: Instala el motor oficial de Android y Gradle de forma automática en el servidor
+    - name: Configurar Entorno Oficial de Gradle
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: "8.2"
+
+    # Compila tu APK directamente usando el comando del sistema inyectado de forma segura
+    - name: Compilar APK (Debug)
+      run: gradle assembleDebug --no-daemon
 
     - name: Guardar y mostrar el APK generado
       uses: actions/upload-artifact@v4

@@ -1,0 +1,53 @@
+name: Compilar APK WearOS
+
+# cancelar ejecuciones antiguas
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+run-name: >-
+  ${{
+    github.event_name == 'workflow_dispatch'
+    && format('Compilación manual: {0}', github.event.inputs.motivo)
+    || format('Commit: {0}', github.event.head_commit.message)
+  }}
+  
+on:
+  push:
+    branches: [ "main" ] # Se ejecutará automáticamente al guardar aquí
+
+  workflow_dispatch:
+    inputs:
+      motivo:
+        description: "Título de la ejecución"
+        required: true
+        default: "Compilación manual"
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Descargar el código del repositorio
+      uses: actions/checkout@v4
+
+    - name: Configurar Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Configurar e iniciar motor de compilación (Gradle)
+      run: |
+        gradle wrapper --gradle-version 8.2 --distribution-type bin
+        chmod +x ./gradlew
+        ./gradlew assembleDebug --no-daemon
+
+    - name: Guardar y mostrar el APK generado
+      uses: actions/upload-artifact@v4
+      with:
+        name: Full Digital Clock
+        path: "**/build/outputs/apk/debug/*.apk"
+        retention-days: 1
+        if-no-files-found: error

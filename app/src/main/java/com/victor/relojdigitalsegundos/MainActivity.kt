@@ -22,11 +22,14 @@ import java.util.*
 class MainActivity : ComponentActivity() {
 
     private var isAppVisible by mutableStateOf(false)
+    
+    // Estado interno que controla si la pantalla debe quedarse encendida o no (inicia estrictamente en false)
+    private var isKeepScreenOnEnabled by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 💡 ASEGURA STARTUP EN FALSE: Forzamos a que la ventana limpie la bandera al abrir la app.
+        // ASEGURA STARTUP EN FALSE: Forzamos a que la ventana limpie la bandera al abrir la app.
         // Así el reloj se iniciará siempre respetando el tiempo de apagado normal.
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
@@ -34,7 +37,9 @@ class MainActivity : ComponentActivity() {
             // Pasamos la función para controlar la pantalla desde Compose
             ClockSecondsApp(
                 isAppVisible = isAppVisible,
+                isKeepScreenOnEnabled = isKeepScreenOnEnabled,
                 onKeepScreenOnChanged = { keepOn ->
+                    isKeepScreenOnEnabled = keepOn
                     toggleKeepScreenOn(keepOn)
                 }
             )
@@ -48,6 +53,14 @@ class MainActivity : ComponentActivity() {
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
+    }
+
+    // 💡 SOLUCIÓN AL GESTO DE DESLIZAR: Al volver a entrar a la app tras haber deslizado, 
+    // se ejecuta onStart. Forzamos a limpiar cualquier estado residual previo.
+    override fun onStart() {
+        super.onStart()
+        isKeepScreenOnEnabled = false
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     override fun onResume() {
@@ -80,12 +93,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ClockSecondsApp(
     isAppVisible: Boolean, 
+    isKeepScreenOnEnabled: Boolean,
     onKeepScreenOnChanged: (Boolean) -> Unit
 ) {
     var currentTime by remember { mutableStateOf("--:--:--") }
-    
-    // Estado que recuerda si la pantalla debe quedarse encendida o no (inicia estrictamente en false)
-    var isKeepScreenOnEnabled by remember { mutableStateOf(false) }
     val formatter = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 
     // El temporizador vive estrictamente bajo el ciclo de vida visible de la interfaz
@@ -106,8 +117,7 @@ fun ClockSecondsApp(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = {
-                        isKeepScreenOnEnabled = !isKeepScreenOnEnabled
-                        onKeepScreenOnChanged(isKeepScreenOnEnabled)
+                        onKeepScreenOnChanged(!isKeepScreenOnEnabled)
                     }
                 )
             },

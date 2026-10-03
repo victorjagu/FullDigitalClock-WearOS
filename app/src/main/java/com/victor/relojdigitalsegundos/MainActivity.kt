@@ -27,8 +27,9 @@ class MainActivity : ComponentActivity() {
 
     private var isAppVisible by mutableStateOf(false)
     
-    // Estado interno que controla si la pantalla debe quedarse encendida o no (inicia estrictamente en false)
-    private var isKeepScreenOnEnabled by mutableStateOf(false)
+    // 💡 OPTIMIZACIÓN DE ARRANQUE: Usamos una variable primitiva nativa en lugar de un State de Compose.
+    // Esto elimina por completo el retraso (delay) al iniciar la Activity.
+    private var isKeepScreenOnEnabledRaw = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,9 +42,9 @@ class MainActivity : ComponentActivity() {
             // Pasamos la función para controlar la pantalla desde Compose
             ClockSecondsApp(
                 isAppVisible = isAppVisible,
-                isKeepScreenOnEnabled = isKeepScreenOnEnabled,
+                initialKeepScreenOn = isKeepScreenOnEnabledRaw,
                 onKeepScreenOnChanged = { keepOn ->
-                    isKeepScreenOnEnabled = keepOn
+                    isKeepScreenOnEnabledRaw = keepOn
                     toggleKeepScreenOn(keepOn)
                 }
             )
@@ -63,7 +64,7 @@ class MainActivity : ComponentActivity() {
     // se ejecuta onStart. Forzamos a limpiar cualquier estado residual previo.
     override fun onStart() {
         super.onStart()
-        isKeepScreenOnEnabled = false
+        isKeepScreenOnEnabledRaw = false
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
@@ -97,13 +98,16 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ClockSecondsApp(
     isAppVisible: Boolean, 
-    isKeepScreenOnEnabled: Boolean,
+    initialKeepScreenOn: Boolean,
     onKeepScreenOnChanged: (Boolean) -> Unit
 ) {
     var currentTime by remember { mutableStateOf("--:--:--") }
     val formatter = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
     
-    // 💡 Tamaño máximo deseado para relojes grandes (se adaptará reduciéndose si es necesario)
+    // 💡 El estado reactivo se gestiona de forma interna y eficiente en Compose, sincronizándose con la clave initialKeepScreenOn
+    var isKeepScreenOnEnabled by remember(initialKeepScreenOn) { mutableStateOf(initialKeepScreenOn) }
+    
+    // Tamaño máximo deseado para relojes grandes (se adaptará reduciéndose si es necesario)
     var fontSize by remember { mutableStateOf(64.sp) }
 
     // El temporizador vive estrictamente bajo el ciclo de vida visible de la interfaz
@@ -124,7 +128,9 @@ fun ClockSecondsApp(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = {
-                        onKeepScreenOnChanged(!isKeepScreenOnEnabled)
+                        val newState = !isKeepScreenOnEnabled
+                        isKeepScreenOnEnabled = newState
+                        onKeepScreenOnChanged(newState)
                     }
                 )
             }
@@ -134,10 +140,10 @@ fun ClockSecondsApp(
         Text(
             text = currentTime,
             color = if (isKeepScreenOnEnabled) Color(0xFF880000) else Color.White,
-            maxLines = 1, // 💡 Prohíbe terminantemente el salto de línea
+            maxLines = 1, // Prohíbe terminantemente el salto de línea
             overflow = TextOverflow.Clip, // Corta visualmente el sobrante en el milisegundo exacto antes de encogerse
             onTextLayout = { textLayoutResult ->
-                // 💡 Si detecta que no cabe a lo ancho, reduce el tamaño de la letra inmediatamente
+                // Si detecta que no cabe a lo ancho, reduce el tamaño de la letra inmediatamente
                 if (textLayoutResult.hasVisualOverflow) {
                     fontSize = (fontSize.value - 1).sp
                 }

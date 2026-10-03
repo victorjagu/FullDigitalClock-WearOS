@@ -42,6 +42,24 @@ The codebase is optimized for low-resource wearable chips, adhering to strict We
 3. **Build & Run**:
    Connect your Wear OS device via Wi-Fi ADB or launch a Wear OS emulator, then click **Run 'app'**.
 
+## 👤 Personal Project Policy
+
+This app is a **Personal Project**.
+
+This means that this is something I created in my free time because I needed it myself, and I
+decided to share it with the world.
+
+If you like the app I'm happy to hear that! And if you have suggestions or if you find any bugs
+please do let me know!
+
+However, please be aware that you're not entitled to:
+
+- Receiving support
+- Having any bugs fixed
+- Having any features added
+
+If you would like to make the changes yourself, you're very welcome to send me a pull request.
+
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome! Feel free to check the issues page if you want to contribute.

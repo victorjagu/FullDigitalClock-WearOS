@@ -14,7 +14,7 @@ run-name: >-
   
 on:
   push:
-    branches: [ "main" ] # Se ejecutará automáticamente al guardar aquí
+    branches: [ "test" ] # Se ejecutará automáticamente al guardar aquí
 
   workflow_dispatch:
     inputs:

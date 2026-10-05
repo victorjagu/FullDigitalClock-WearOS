@@ -30,28 +30,29 @@ jobs:
 
     steps:
     - name: Descargar el código del repositorio
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.2.2
 
     - name: Configurar Java 17
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         distribution: 'zulu'
         java-version: '17'
 
-    # Paso clave: Instala el motor oficial de Android y Gradle de forma automática en el servidor
     - name: Configurar Entorno Oficial de Gradle
       uses: gradle/actions/setup-gradle@v4
       with:
-        gradle-version: "8.2"
+        gradle-version: "8.6"
 
-    # Compila tu APK directamente usando el comando del sistema inyectado de forma segura
     - name: Compilar APK (Debug)
       run: gradle assembleDebug --no-daemon
 
+    - name: Renombrar archivo APK
+      run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/FullDigitalClock.apk
+      
     - name: Guardar y mostrar el APK generado
       uses: actions/upload-artifact@v4
       with:
         name: Full Digital Clock
-        path: "**/build/outputs/apk/debug/*.apk"
+        path: "app/build/outputs/apk/debug/FullDigitalClock.apk"
         retention-days: 1
         if-no-files-found: error

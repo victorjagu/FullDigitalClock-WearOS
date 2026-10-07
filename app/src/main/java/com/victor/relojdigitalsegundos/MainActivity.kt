@@ -1,15 +1,21 @@
 package com.victor.relojdigitalsegundos
 
+// Importaciones nativas del Sistema Android
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
+
+// Importaciones de Actividades y la nueva Extensión del Gesto de Atrás
 import androidx.activity.ComponentActivity
+import androidx.activity.addCallback
 import androidx.activity.compose.setContent
+
+// Importaciones de la interfaz de Jetpack Compose
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +25,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Text
+
+// Importaciones de Corrutinas y Utilidades de Tiempo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import java.text.SimpleDateFormat
@@ -26,23 +34,45 @@ import java.util.*
 
 class MainActivity : ComponentActivity() {
 
-    private var isAppVisible by mutableStateOf(false)
-    
-    // OPTIMIZACIÓN DE ARRANQUE: Usamos una variable primitiva nativa en lugar de un State de Compose.
-    // Esto elimina por completo el retraso (delay) al iniciar la Activity.
+    // Estado reactivo que avisa a Compose si el segundero debe estar activo
+    private var isClockRunning by mutableStateOf(false)
     private var isKeepScreenOnEnabledRaw = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // ASEGURA STARTUP EN FALSE: Forzamos a que la ventana limpie la bandera al abrir la app.
-        // Así el reloj se iniciará siempre respetando el tiempo de apagado normal.
+        // Nos aseguramos de limpiar la bandera al iniciar para evitar que se quede pegada
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        // Solicitamos permiso de notificaciones en Android 13+ (Wear OS 4+) antes de lanzar el servicio
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+        }
+        
+        // Arrancamos tu nuevo MainService.
+        // Esto le avisa a Wear OS que la app tiene una tarea en curso y no debe cerrarse en segundo plano.
+        val intentService = Intent(this, MainService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intentService)
+        } else {
+            startService(intentService)
+        }
+
+        // Interceptamos el cierre de Jetpack Compose cuando el usuario desliza por completo la pantalla para salir.
+        onBackPressedDispatcher.addCallback(this) {
+            // 1. Apagamos el segundero
+            isClockRunning = false
+            
+            // 2. Destruimos fulminantemente el servicio para borrar el icono/punto de la pantalla
+            stopService(Intent(this@MainActivity, MainService::class.java))
+            
+            // 3. Forzamos al sistema operativo a cerrar y limpiar la app de raíz
+            finishAndRemoveTask()
+        }
+        
         setContent {
-            // Pasamos la función para controlar la pantalla desde Compose
             ClockSecondsApp(
-                isAppVisible = isAppVisible,
+                isClockRunning = isClockRunning,
                 initialKeepScreenOn = isKeepScreenOnEnabledRaw,
                 onKeepScreenOnChanged = { keepOn ->
                     isKeepScreenOnEnabledRaw = keepOn
@@ -61,72 +91,75 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // SOLUCIÓN AL GESTO DE DESLIZAR: Al volver a entrar a la app tras haber deslizado, 
-    // se ejecuta onStart. Forzamos a limpiar cualquier estado residual previo.
+    // CONTROL DEL CICLO DE VIDA PARA TRABAJAR EN NEGRO ABSOLUTO:
     override fun onStart() {
         super.onStart()
+        // La pantalla se enciende (o entramos a la app): Se reactiva el segundero inmediatamente
+        isClockRunning = true 
         isKeepScreenOnEnabledRaw = false
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
-
-    override fun onResume() {
-        super.onResume()
-        isAppVisible = true
-    }
-
-    override fun onPause() {
-        super.onPause()
-        isAppVisible = false // Detiene la corrutina de los segundos inmediatamente para consumo CERO de CPU
-
-        // Seguridad: Se limpia la bandera al salir para asegurar el comportamiento normal del reloj
+    
+    override fun onStop() {
+        super.onStop()
+        // La pantalla se apaga POR COMPLETO: Congelamos el segundero para consumo CERO de batería.
+        // Gracias al servicio, la app se queda congelada en memoria en lugar de ser destruida por el sistema.
+        isClockRunning = false 
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-        // Si el usuario sale adrede (desliza atrás o botón Home), cerramos la app inmediatamente.
-        if (isFinishing) {
-            finish() 
-        }
     }
-
+    
     override fun onDestroy() {
         super.onDestroy()
-        // Destrucción total y absoluta del proceso de la app al finalizar para liberar la memoria RAM
+        // Comprobamos si la actividad se está cerrando definitivamente por acción del usuario, y en ese caso detenemos el servicio.
         if (isFinishing) {
-            android.os.Process.killProcess(android.os.Process.myPid())
+            stopService(Intent(this, MainService::class.java))
         }
+        super.onDestroy()
     }
 }
 
 @Composable
 fun ClockSecondsApp(
-    isAppVisible: Boolean, 
+    isClockRunning: Boolean, 
     initialKeepScreenOn: Boolean,
     onKeepScreenOnChanged: (Boolean) -> Unit
 ) {
+    // Variable de estado para almacenar la hora formateada actual
     var currentTime by remember { mutableStateOf("--:--:--") }
+    // Formateador de fecha configurado para el formato de 24 horas con segundos
     val formatter = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
     
-    // El estado reactivo se gestiona de forma interna y eficiente en Compose, sincronizándose con la clave initialKeepScreenOn
+    // Estado local para rastrear si la pantalla debe permanecer encendida
     var isKeepScreenOnEnabled by remember(initialKeepScreenOn) { mutableStateOf(initialKeepScreenOn) }
 
-    // El temporizador vive estrictamente bajo el ciclo de vida visible de la interfaz
-    LaunchedEffect(isAppVisible) {
-        if (isAppVisible) {
+    // El bucle del segundero se sincroniza estrictamente con el estado de la pantalla (isClockRunning)
+    LaunchedEffect(isClockRunning) {
+        if (isClockRunning) {
             while (isActive) {
-                currentTime = formatter.format(Date())
-                delay(1000)
+                // Obtiene la instancia actual del calendario con la hora del sistema
+                val now = Calendar.getInstance()
+                // Formatea y actualiza el estado de la hora
+                currentTime = formatter.format(now.time)
+                
+                // Sincronización inteligente: Calculamos exactamente cuántos milisegundos
+                // quedan para el siguiente segundo. Evita retrasos y desfases gráficos.
+                val milisegundosFaltantes = 1000 - now.get(Calendar.MILLISECOND)
+                delay(milisegundosFaltantes.toLong())
             }
         }
     }
 
-    // 💡 BoxWithConstraints nos da el ancho exacto (maxWidth) de la pantalla del reloj en tiempo real
+    // Contenedor principal que ocupa todo el espacio y proporciona restricciones de tamaño
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black) // Fondo OLED puro para apagar físicamente los píxeles
-            // Captura los toques en cualquier píxel de la pantalla (fondo o texto) sin añadir efectos visuales pesados
+            // Configura un fondo negro sólido para optimizar el consumo en pantallas OLED
+            .background(Color.Black) 
+            // Configura el detector de gestos táctiles en el área de la pantalla
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = {
+                        // Alterna el estado de mantener la pantalla encendida
                         val newState = !isKeepScreenOnEnabled
                         isKeepScreenOnEnabled = newState
                         onKeepScreenOnChanged(newState)
@@ -135,21 +168,25 @@ fun ClockSecondsApp(
             },
         contentAlignment = Alignment.Center
     ) {
-        // 💡 CÁLCULO MATEMÁTICO PREVIO: Convertimos los píxeles disponibles a tamaño sp de forma estática.
-        // Restamos el padding lateral de seguridad (24dp total) y calculamos una escala de fuente perfecta para 8 caracteres.
-        // Ponemos un límite máximo de 64.sp para que no crezca desproporcionadamente en pantallas gigantes.
+        // Calcula el ancho disponible restando un margen de seguridad de 24dp
         val availableWidthDp = maxWidth - 24.dp
+        
+        // Calcula dinámicamente el tamaño de la fuente basado en la densidad y el ancho disponible
         val calculatedFontSize = with(LocalDensity.current) {
             val widthInPx = availableWidthDp.toPx()
-            // Un carácter numérico en tipografía monoespaciada estándar/display suele ocupar en torno a un 60% de su altura (fontSize)
+            // Factor empírico para ajustar 8 caracteres ("HH:mm:ss") de forma óptima
             val idealSizeSp = (widthInPx / 8.0f) * 1.55f / density
+            // Limita el tamaño máximo para evitar desbordamientos en pantallas muy grandes
             idealSizeSp.coerceAtMost(64f).sp
         }
 
+        // Muestra el texto de la hora con el estilo y tamaño calculados
         Text(
             text = currentTime,
+            // Cambia el color a rojo oscuro si está activado mantener encendido, de lo contrario blanco puro
             color = if (isKeepScreenOnEnabled) Color(0xFF880000) else Color.White,
-            maxLines = 1, // Prohíbe terminantemente el salto de línea
+            // Asegura que todo el texto permanezca estrictamente en una sola línea
+            maxLines = 1,
             style = androidx.wear.compose.material.MaterialTheme.typography.display2.copy(
                 fontSize = calculatedFontSize
             )

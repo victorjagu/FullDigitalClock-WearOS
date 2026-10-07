@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Text
@@ -126,8 +127,8 @@ fun ClockSecondsApp(
     initialKeepScreenOn: Boolean,
     onKeepScreenOnChanged: (Boolean) -> Unit
 ) {
-    // Variable de estado para almacenar la hora formateada actual
-    var currentTime by remember { mutableStateOf("") }
+    // Variable de estado para almacenar la hora formateada actual (Optimizada con máscara fija inicial)
+    var currentTime by remember { mutableStateOf("--:--:--") }
     
     // Estado local para rastrear si la pantalla debe permanecer encendida
     var isKeepScreenOnEnabled by remember(initialKeepScreenOn) { mutableStateOf(initialKeepScreenOn) }
@@ -143,7 +144,7 @@ fun ClockSecondsApp(
     LaunchedEffect(isClockRunning) {
         if (isClockRunning) {
             while (isActive) {
-                // Leemos el tiempo del procesador en milisegundos directamente, evita instanciar y destruir el pesado objeto Calendar() 60 veces por minuto en la memoria RAM.
+                // Leemos el tiempo del procesador en milisegundos directamente, evitando instanciar y destruir el pesado objeto Calendar() 60 veces por minuto en la memoria RAM.
                 val currentTimeMillis = System.currentTimeMillis()
                 currentTime = clockFormatter.format(currentTimeMillis)
                 
@@ -195,7 +196,10 @@ fun ClockSecondsApp(
             // Asegura que todo el texto permanezca estrictamente en una sola línea
             maxLines = 1,
             style = androidx.wear.compose.material.MaterialTheme.typography.display2.copy(
-                fontSize = calculatedFontSize
+                fontSize = calculatedFontSize,
+                // OPTIMIZACIÓN EXTREMA DE FUENTE: Desactiva cálculos de padding tipográfico dinámico.
+                // Le dice al procesador de fuentes de Android que renderice los números de forma directa y fija.
+                platformStyle = PlatformTextStyle(includeFontPadding = false)
             )
         )
     }

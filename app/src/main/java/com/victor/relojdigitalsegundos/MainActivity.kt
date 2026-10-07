@@ -90,9 +90,11 @@ class MainActivity : ComponentActivity() {
     
     override fun onDestroy() {
         super.onDestroy()
-        // Si el usuario cierra la app deslizando voluntariamente hacia atrás para salir,
-        // detenemos el servicio en primer plano para limpiar la notificación del sistema.
-        stopService(Intent(this, MainService::class.java))
+        // Comprobamos si la actividad se está cerrando definitivamente por acción del usuario, y en ese caso detenemos el servicio.
+        if (isFinishing) {
+            stopService(Intent(this, MainService::class.java))
+        }
+        super.onDestroy()
     }
 }
 

@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
         // Nos aseguramos de limpiar la bandera al iniciar para evitar que se quede pegada
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // 🔥 MODIFICACIÓN CLAVE: Arrancamos tu nuevo MainService.
+        // MODIFICACIÓN CLAVE: Arrancamos tu nuevo MainService.
         // Esto le avisa a Wear OS que la app tiene una tarea en curso y no debe cerrarse en segundo plano.
         val intentService = Intent(this, MainService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -83,6 +83,23 @@ class MainActivity : ComponentActivity() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
+    
+    // Detecta cuando el usuario sale voluntariamente (Botón Home o Recientes)
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        
+        // El usuario ha pulsado activamente el botón Home para salir:
+        
+        // 1. Detenemos el segundero
+        isClockRunning = false
+        
+        // 2. Destruimos el servicio en primer plano para limpiar la notificación del sistema
+        stopService(Intent(this, MainService::class.java))
+        
+        // 3. Cerramos y matamos la actividad por completo de la memoria RAM
+        finish()
+    }
+    
     override fun onDestroy() {
         super.onDestroy()
         // Si el usuario cierra la app deslizando voluntariamente hacia atrás para salir,

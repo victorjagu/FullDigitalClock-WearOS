@@ -10,7 +10,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.wear.ongoing.OngoingActivity
 
-class FullDigitalClockService : Service() {
+class MainService : Service() {
     private val NOTIFICATION_ID = 1001
     private val CHANNEL_ID = "FullDigitalClockChannel"
 

@@ -1,17 +1,17 @@
 package com.victor.relojdigitalsegundos
 
-// 1. Importaciones nativas del Sistema Android
+// Importaciones nativas del Sistema Android
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 
-// 2. Importaciones de Actividades y la nueva Extensión del Gesto de Atrás
+// Importaciones de Actividades y la nueva Extensión del Gesto de Atrás
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 
-// 3. Importaciones de la interfaz de Jetpack Compose
+// Importaciones de la interfaz de Jetpack Compose
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Text
 
-// 4. Importaciones de Corrutinas y Utilidades de Tiempo
+// Importaciones de Corrutinas y Utilidades de Tiempo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import java.text.SimpleDateFormat

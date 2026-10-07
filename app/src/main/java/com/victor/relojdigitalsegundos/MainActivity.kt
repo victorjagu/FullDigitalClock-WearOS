@@ -127,7 +127,7 @@ fun ClockSecondsApp(
     onKeepScreenOnChanged: (Boolean) -> Unit
 ) {
     // Variable de estado para almacenar la hora formateada actual
-    var currentTime by remember { mutableStateOf("--:--:--") }
+    var currentTime by remember { mutableStateOf("") }
     
     // Estado local para rastrear si la pantalla debe permanecer encendida
     var isKeepScreenOnEnabled by remember(initialKeepScreenOn) { mutableStateOf(initialKeepScreenOn) }
@@ -143,21 +143,20 @@ fun ClockSecondsApp(
     LaunchedEffect(isClockRunning) {
         if (isClockRunning) {
             while (isActive) {
-                // Obtiene la instancia actual del calendario con la hora del sistema
-                val now = Calendar.getInstance()
-                // Formatea y actualiza el estado de la hora usando la constante estática global optimizada
-                currentTime = clockFormatter.format(now.time)
+                // Leemos el tiempo del procesador en milisegundos directamente, evita instanciar y destruir el pesado objeto Calendar() 60 veces por minuto en la memoria RAM.
+                val currentTimeMillis = System.currentTimeMillis()
+                currentTime = clockFormatter.format(currentTimeMillis)
                 
-                // Sincronización inteligente: Calculamos exactamente cuántos milisegundos
-                // quedan para el siguiente segundo. Evita retrasos y desfases gráficos.
-                val milisegundosFaltantes = 1000 - now.get(Calendar.MILLISECOND)
-                delay(milisegundosFaltantes.toLong())
+                // Sincronización inteligente basándonos en los milisegundos de hardware del procesador
+                val milisegundosFaltantes = 1000 - (currentTimeMillis % 1000)
+                delay(milisegundosFaltantes)
             }
         }
     }
 
     // Contenedor principal que ocupa todo el espacio y proporciona restricciones de tamaño
     BoxWithConstraints(
+        // Modificadores encadenados estáticos para evitar la reinstanciación en el redibujado de Compose
         modifier = Modifier
             .fillMaxSize()
             // Configura un fondo negro sólido para optimizar el consumo en pantallas OLED

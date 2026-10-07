@@ -80,6 +80,13 @@ class MainActivity : ComponentActivity() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
+    override fun onPause() {
+        super.onPause()
+        // AL DESLIZAR O IR A HOME: 
+        // Desconectamos el servicio en el acto para eliminar el icono/punto de la pantalla
+        stopService(Intent(this, MainService::class.java))
+    }
+    
     override fun onStop() {
         super.onStop()
         // La pantalla se apaga POR COMPLETO: Congelamos el segundero para consumo CERO de batería.

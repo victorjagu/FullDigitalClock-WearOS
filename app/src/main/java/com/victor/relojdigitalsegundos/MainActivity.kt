@@ -50,6 +50,18 @@ class MainActivity : ComponentActivity() {
             startService(intentService)
         }
 
+        // Interceptamos el cierre de Jetpack Compose cuando el usuario desliza por completo la pantalla para salir.
+        onBackPressedDispatcher.addCallback(this) {
+            // 1. Apagamos el segundero
+            isClockRunning = false
+            
+            // 2. Destruimos fulminantemente el servicio para borrar el icono/punto de la pantalla
+            stopService(Intent(this@MainActivity, MainService::class.java))
+            
+            // 3. Forzamos al sistema operativo a cerrar y limpiar la app de raíz
+            finishAndRemoveTask()
+        }
+        
         setContent {
             ClockSecondsApp(
                 isClockRunning = isClockRunning,

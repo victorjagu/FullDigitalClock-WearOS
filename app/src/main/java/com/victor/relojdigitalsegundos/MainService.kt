@@ -26,7 +26,7 @@ class MainService : Service() {
 
         // Notificación en segundo plano (Requisito obligatorio de Android)
         val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher) 
+            .setSmallIcon(R.drawable.ic_notification_clock) 
             .setContentTitle("Full Digital Clock")
             .setContentText("") 
             .setOngoing(true)

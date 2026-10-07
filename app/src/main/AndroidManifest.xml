@@ -21,7 +21,7 @@
         </activity>
 
         <service
-            android:name=".FullDigitalClockService"
+            android:name=".MainService"
             android:foregroundServiceType="specialUse"
             android:exported="false" />
 

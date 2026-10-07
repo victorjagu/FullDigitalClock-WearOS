@@ -86,10 +86,6 @@ class MainActivity : ComponentActivity() {
         // Gracias al servicio, la app se queda congelada en memoria en lugar de ser destruida por el sistema.
         isClockRunning = false 
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        // Si el usuario cerró la app deslizando, forzamos el apagado del servicio aquí mismo
-        if (isFinishing) {
-            stopService(Intent(this, MainService::class.java))
-        }
     }
     
     override fun onDestroy() {

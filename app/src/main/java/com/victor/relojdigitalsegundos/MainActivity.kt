@@ -82,22 +82,6 @@ class MainActivity : ComponentActivity() {
         isClockRunning = false 
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
-
-    // Detecta cuando el usuario sale voluntariamente (Botón Home o Recientes)
-    /* override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-        
-        // El usuario ha pulsado activamente el botón Home para salir:
-        
-        // 1. Detenemos el segundero
-        isClockRunning = false
-        
-        // 2. Destruimos el servicio en primer plano para limpiar la notificación del sistema
-        stopService(Intent(this, MainService::class.java))
-        
-        // 3. Cerramos y matamos la actividad por completo de la memoria RAM
-        finish()
-    } */
     
     override fun onDestroy() {
         super.onDestroy()

@@ -28,7 +28,7 @@ class MainService : Service() {
         val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher) 
             .setContentTitle("Full Digital Clock")
-            .setContentText("Keep active with screen off.") 
+            .setContentText("") 
             .setOngoing(true)
 
         // API de Actividad en Curso (Ongoing Activity): Vincula el servicio al sistema Wear OS

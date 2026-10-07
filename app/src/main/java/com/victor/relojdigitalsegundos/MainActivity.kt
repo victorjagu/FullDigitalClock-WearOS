@@ -36,7 +36,12 @@ class MainActivity : ComponentActivity() {
         // Nos aseguramos de limpiar la bandera al iniciar para evitar que se quede pegada
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // MODIFICACIÓN CLAVE: Arrancamos tu nuevo MainService.
+        // Solicitamos permiso de notificaciones en Android 13+ (Wear OS 4+) antes de lanzar el servicio
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+        }
+        
+        // Arrancamos tu nuevo MainService.
         // Esto le avisa a Wear OS que la app tiene una tarea en curso y no debe cerrarse en segundo plano.
         val intentService = Intent(this, MainService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -56,7 +56,7 @@ class MainService : Service() {
         }
     }
 
-    // Este método se dispara automáticamente cuando la app fuerza su cierre (por ejemplo, al cerrarlo de las apps recientes).
+    // Este método se dispara automáticamente cuando se cierra desde el menú de aplicaciones recientes.
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         

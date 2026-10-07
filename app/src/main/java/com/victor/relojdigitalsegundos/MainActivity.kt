@@ -82,6 +82,32 @@ class MainActivity : ComponentActivity() {
         isClockRunning = false 
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
+
+    /*
+    // DETECTA CUANDO EL USUARIO SALE VOLUNTARIAMENTE (Botón Home o Recientes)
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        
+        // Verificamos si la pantalla física del reloj sigue encendida/interactiva
+        val powerManager = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+        val isScreenOn = powerManager.isInteractive
+
+        if (isScreenOn) {
+            // SI LA PANTALLA SIGUE ENCENDIDA: Significa que el usuario pulsó Home voluntariamente.
+            
+            // 1. Detenemos el segundero
+            isClockRunning = false
+            
+            // 2. Destruimos el servicio en primer plano para limpiar la notificación del sistema
+            stopService(Intent(this, MainService::class.java))
+            
+            // 3. Cerramos y matamos la actividad por completo de la memoria RAM
+            finish()
+        }
+        // Si isScreenOn es false, significa que la pantalla se apagó sola por inactividad.
+        // Ignoramos el cierre y dejamos que onStop() congele la app de forma segura mediante MainService.
+    }
+    */
     
     override fun onDestroy() {
         super.onDestroy()

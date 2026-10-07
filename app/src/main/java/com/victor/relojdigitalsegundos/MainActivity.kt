@@ -32,6 +32,9 @@ import kotlinx.coroutines.isActive
 import java.text.SimpleDateFormat
 import java.util.*
 
+// Formateador de fecha configurado para el formato de 24 horas con segundos, alojado en memoria global estática (se crea una sola vez).
+private val clockFormatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+
 class MainActivity : ComponentActivity() {
 
     // Estado reactivo que avisa a Compose si el segundero debe estar activo
@@ -109,7 +112,6 @@ class MainActivity : ComponentActivity() {
     }
     
     override fun onDestroy() {
-        super.onDestroy()
         // Comprobamos si la actividad se está cerrando definitivamente por acción del usuario, y en ese caso detenemos el servicio.
         if (isFinishing) {
             stopService(Intent(this, MainService::class.java))
@@ -126,11 +128,16 @@ fun ClockSecondsApp(
 ) {
     // Variable de estado para almacenar la hora formateada actual
     var currentTime by remember { mutableStateOf("--:--:--") }
-    // Formateador de fecha configurado para el formato de 24 horas con segundos
-    val formatter = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
     
     // Estado local para rastrear si la pantalla debe permanecer encendida
     var isKeepScreenOnEnabled by remember(initialKeepScreenOn) { mutableStateOf(initialKeepScreenOn) }
+
+    // Evita que Compose tenga que calcular la estructura condicional de color cada vez que cambia el String de los segundos.
+    val textColor by remember {
+        derivedStateOf {
+            if (isKeepScreenOnEnabled) Color(0xFF880000) else Color.White
+        }
+    }
 
     // El bucle del segundero se sincroniza estrictamente con el estado de la pantalla (isClockRunning)
     LaunchedEffect(isClockRunning) {
@@ -138,8 +145,8 @@ fun ClockSecondsApp(
             while (isActive) {
                 // Obtiene la instancia actual del calendario con la hora del sistema
                 val now = Calendar.getInstance()
-                // Formatea y actualiza el estado de la hora
-                currentTime = formatter.format(now.time)
+                // Formatea y actualiza el estado de la hora usando la constante estática global optimizada
+                currentTime = clockFormatter.format(now.time)
                 
                 // Sincronización inteligente: Calculamos exactamente cuántos milisegundos
                 // quedan para el siguiente segundo. Evita retrasos y desfases gráficos.
@@ -171,11 +178,12 @@ fun ClockSecondsApp(
         // Calcula el ancho disponible restando un margen de seguridad de 24dp
         val availableWidthDp = maxWidth - 24.dp
         
-        // Calcula dinámicamente el tamaño de la fuente basado en la densidad y el ancho disponible
-        val calculatedFontSize = with(LocalDensity.current) {
-            val widthInPx = availableWidthDp.toPx()
+        // Registra las matemáticas del tamaño del texto de manera estable. No se recalculará cada un segundo.
+        val currentDensity = LocalDensity.current
+        val calculatedFontSize = remember(availableWidthDp, currentDensity) {
+            val widthInPx = with(currentDensity) { availableWidthDp.toPx() }
             // Factor empírico para ajustar 8 caracteres ("HH:mm:ss") de forma óptima
-            val idealSizeSp = (widthInPx / 8.0f) * 1.55f / density
+            val idealSizeSp = (widthInPx / 8.0f) * 1.55f / currentDensity.density
             // Limita el tamaño máximo para evitar desbordamientos en pantallas muy grandes
             idealSizeSp.coerceAtMost(64f).sp
         }
@@ -183,8 +191,8 @@ fun ClockSecondsApp(
         // Muestra el texto de la hora con el estilo y tamaño calculados
         Text(
             text = currentTime,
-            // Cambia el color a rojo oscuro si está activado mantener encendido, de lo contrario blanco puro
-            color = if (isKeepScreenOnEnabled) Color(0xFF880000) else Color.White,
+            // Cambia el color basándose en el estado derivado optimizado
+            color = textColor,
             // Asegura que todo el texto permanezca estrictamente en una sola línea
             maxLines = 1,
             style = androidx.wear.compose.material.MaterialTheme.typography.display2.copy(

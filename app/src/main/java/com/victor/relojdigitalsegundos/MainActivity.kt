@@ -83,9 +83,8 @@ class MainActivity : ComponentActivity() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
-    
     // Detecta cuando el usuario sale voluntariamente (Botón Home o Recientes)
-    override fun onUserLeaveHint() {
+    /* override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         
         // El usuario ha pulsado activamente el botón Home para salir:
@@ -98,7 +97,7 @@ class MainActivity : ComponentActivity() {
         
         // 3. Cerramos y matamos la actividad por completo de la memoria RAM
         finish()
-    }
+    } */
     
     override fun onDestroy() {
         super.onDestroy()

@@ -55,4 +55,21 @@ class MainService : Service() {
             manager?.createNotificationChannel(channel)
         }
     }
+
+    // Este método se dispara automáticamente cuando la app se cierra por completo (al deslizar)
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        
+        // 1. Detener el modo foreground y quitar la notificación inmediatamente de la pantalla
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        
+        // 2. Detener el servicio por completo para eliminar el proceso
+        stopSelf()
+    }
+    
 }

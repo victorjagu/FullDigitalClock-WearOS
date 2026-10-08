@@ -14,15 +14,7 @@ A high-performance, battery-optimized digital clock application designed specifi
 * **Zero-Lag Startup**: Uses primitive native variables instead of traditional Compose States for critical Window Flags, completely removing activity initialization delays.
 * **Strict Battery Optimization**: Automatically halts UI recomposition and background coroutine timers the millisecond the application goes off-screen (`onPause`).
 * **Auto-Scale Typography**: Dynamically calculates the available horizontal viewport (`BoxWithConstraints`) to scale the font to the absolute maximum size without clipping or text wrapping.
-* **Aggressive Memory Management**: Clears residual process footprints and frees allocated RAM instantly upon exit (`android.os.Process.killProcess`).
-
-## 🛠️ Architecture & Architecture Highlights
-
-The codebase is optimized for low-resource wearable chips, adhering to strict Wear OS lifecycle standards:
-
-* **Precise Sizing**: Uses standard monospace layout assumptions to fit `HH:mm:ss` inside any circular or rectangular Wear OS watch face dynamically.
-* **Lifecycle Awareness**: Coroutine scopes live strictly under the visible lifecycle of the UI (`LaunchedEffect(isAppVisible)`), safeguarding against battery drain when the screen is dimmed or covered.
-* **Swipe-to-Dismiss Protection**: Overrides `onStart` and `onPause` lifecycle hooks to clear window flags and prevent system-wide lockups when the user swipes to exit.
+* **Aggressive Memory Management**: Clears residual process footprints and frees allocated RAM instantly upon exit.
 
 ## 📋 Requirements
 
@@ -31,16 +23,51 @@ The codebase is optimized for low-resource wearable chips, adhering to strict We
 * **Language**: Kotlin 1.9+
 * **UI Toolkit**: Jetpack Compose for Wear OS
 
-## 📦 Installation & Setup
+## 🔌 Sideloading: Install APK via USB Cable
 
-1. **Clone the repository**:
+Follow these steps to manually install the compiled APK directly onto your Wear OS smartwatch using a physical USB cable and **Android Debug Bridge (ADB)**.
+
+### Prerequisite: Install ADB on your Computer
+You need the ADB tool installed on your system. If you don't have it yet, download the standalone platform-tools from the official developer site:
+* 🪟 [Download SDK Platform-Tools for Windows](https://android.com "Android SDK Platform Tools Windows")
+* 🍏 [Download SDK Platform-Tools for Mac](https://android.com "Android SDK Platform Tools Mac")
+* 🐧 [Download SDK Platform-Tools for Linux](https://android.com "Android SDK Platform Tools Linux")
+
+---
+
+### Step 1: Enable Developer Options on your Watch
+1. On your Wear OS watch, swipe down and go to **Settings** (gear icon).
+2. Scroll to the bottom and select **System** (or **About watch** depending on your brand).
+3. Tap on **About** / **Software info**.
+4. Scroll down to **Build number** and tap it **7 times** until you see a notification saying *"You are now a developer!"*.
+
+### Step 2: Enable ADB Debugging
+1. Go back to the main **Settings** menu.
+2. Scroll down and open the newly unlocked **Developer options**.
+3. Toggle **ON** the option **Stay awake while charging** (this prevents the watch from sleeping/locking while connected to the PC, allowing a stable installation).
+4. Locate **ADB debugging** and toggle it **ON**.
+5. *(If prompted, confirm the action)*.
+
+### Step 3: Connect and Authorize the Connection
+1. Place your watch on its charging cradle/cable and connect the USB end to your computer.
+2. Open your terminal (Linux/macOS) or Command Prompt/PowerShell (Windows).
+3. Navigate to your platform-tools folder (if not added to your system PATH) and verify the connection by running:
    ```bash
-   git clone https://github.com
+   adb devices
    ```
-2. **Open in Android Studio**:
-   Import the project into Android Studio Flamingo (or newer).
-3. **Build & Run**:
-   Connect your Wear OS device via Wi-Fi ADB or launch a Wear OS emulator, then click **Run 'app'**.
+4. **Look at your watch screen!** A prompt will appear asking to **Allow Debugging?**. Check the box *"Always allow from this computer"* and tap the green checkmark.
+5. Run `adb devices` again. The status should change from `unauthorized` to `device`.
+
+### Step 4: Install the APK
+Run the following command in your terminal, replacing `app-release.apk` with the actual path to your downloaded file:
+
+```bash
+adb install app-release.apk
+```
+
+> 💡 **Tip:** If the installation fails with a `Targeting R+` or architecture mismatch error, ensure your build matches the specific chipset architecture of your watch (usually `armeabi-v7a` or `arm64-v8a`).
+
+Once the terminal outputs `Success`, the application will be available in your watch's app drawer!
 
 ## 👤 Personal Project Policy
 
